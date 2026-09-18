@@ -1,6 +1,8 @@
 {
   "patch_list": [
-    { "app_name": "instagram", "source": "piko" }
-    
+    {
+      "app_name": "twitter",
+      "source": "piko"
+    }
   ]
 }
