@@ -70,8 +70,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.10.0.jar -O apktool.jar
           pip install -r requirements.txt
-          pip install requests beautifulsoup4
+          pip install requests beautifulsoup4 gdown
 
       - name: Run Incremental Update Check
         id: check
