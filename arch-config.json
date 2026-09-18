@@ -1,6 +1,6 @@
 [
   {
-    "app_name": "instagram",
+    "app_name": "twitter",
     "source": "piko",
     "arches": ["arm64-v8a"]
   }
