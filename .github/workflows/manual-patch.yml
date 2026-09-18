@@ -78,14 +78,12 @@ jobs:
       - name: Download Manual Source File
         if: ${{ inputs.apk_url != '' }}
         run: |
-          echo "Downloading user-supplied package..."
-          curl -L "${{ inputs.apk_url }}" -o manual_input_source
-          if file manual_input_source | grep -qi "zip"; then
-            mv manual_input_source manual_input.apkm
-          else
-            mv manual_input_source manual_input.apk
+          EXT="${{ inputs.apk_url }}"
+          EXT="${EXT##*.}"
+          if [[ "$EXT" != "apk" && "$EXT" != "apkm" && "$EXT" != "xapk" ]]; then
+            EXT="apk"
           fi
-          ls -lh manual_input.*
+          curl -L "${{ inputs.apk_url }}" -o "manual_input.$EXT"
           
       - name: Setup Custom Signing Keystore
         run: |
