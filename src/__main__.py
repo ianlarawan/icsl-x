@@ -144,9 +144,11 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
             for line in patches_file:
                 line = line.strip()
                 if line.startswith('-'):
-                    exclude_patches.extend(["-d", line[1:].strip()])
+                    if "Change package name" not in line:
+                        exclude_patches.extend(["-d", line[1:].strip()])
                 elif line.startswith('+'):
-                    include_patches.extend(["-e", line[1:].strip()])
+                    if "Change package name" not in line:
+                        include_patches.extend(["-e", line[1:].strip()])
 
     for attempt_idx, ver in enumerate(versions_to_try):
         if attempt_idx > 0:
@@ -184,8 +186,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                 raise RuntimeError("Merged APK file not found")
 
             # Clean up filename: remove build number like (1575420) and -1575420
-            clean_name = re.sub(r'\(\d+\)', '', merged_apk.name)  # Remove (1575420)
-            clean_name = re.sub(r'-\d+_', '_', clean_name)  # Remove -1575420_ -> _
+            clean_name = re.sub(r'\(\d+\)', '', merged_apk.name)
+            clean_name = re.sub(r'-\d+_', '_', clean_name)
             if clean_name != merged_apk.name:
                 clean_apk = merged_apk.with_name(clean_name)
                 merged_apk.rename(clean_apk)
@@ -260,19 +262,24 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                     'revanced-cli-6' in cli_name or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name
                 )
 
+                custom_pkg_flags = [
+                    "-e", "Change package name",
+                    "-O", "packageName=com.twitter.piko"
+                ]
+
                 if is_revanced_v6_or_newer:
                     utils.run_process([
                         "java", "-jar", str(cli),
                         "patch", "-p", str(patches), "-b",
                         "--out", str(output_apk), str(input_apk),
-                        *exclude_patches, *include_patches
+                        *exclude_patches, *include_patches, *custom_pkg_flags
                     ], capture=True, stream=True)
                 else:
                     utils.run_process([
                         "java", "-jar", str(cli),
                         "patch", "--patches", str(patches),
                         "--out", str(output_apk), str(input_apk),
-                        *exclude_patches, *include_patches
+                        *exclude_patches, *include_patches, *custom_pkg_flags
                     ], capture=True, stream=True)
 
         except subprocess.CalledProcessError as e:
@@ -287,10 +294,10 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         # Patch succeeded -> cleanup input and sign.
         input_apk.unlink(missing_ok=True)
 
-        # Extracts the Morphe patch version dynamically from the downloaded file
+        # Extracts the patch version dynamically from the downloaded file
         patchver = release.extract_version(str(patches))
         
-        # Formats file naming pattern strictly to your custom style: youtube-morphe_20.47.62-v1.29.0.apk
+        # Formats file naming pattern strictly to custom style: twitter-piko_20.47.62-v1.29.0.apk
         output_custom_name = f"{app_name.lower()}-{source.lower()}_{version}-v{patchver}.apk"
         signed_apk = Path(output_custom_name)
 
