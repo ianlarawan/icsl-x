@@ -292,8 +292,47 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                 continue
             raise
 
-        # Patch succeeded -> cleanup input and sign.
+        # Patch succeeded -> cleanup input and clone package
         input_apk.unlink(missing_ok=True)
+
+        # FORCE PACKAGE CLONING
+        logging.info("Forcing Application ID change via apktool...")
+        cloned_apk = Path(f"cloned_{output_apk.name}")
+        apktool_jar = Path("apktool.jar").absolute()
+        
+        try:
+            utils.run_process(["java", "-jar", str(apktool_jar), "d", str(output_apk), "-o", "decoded_apk", "-f", "-s"], capture=True)
+            manifest_path = Path("decoded_apk/AndroidManifest.xml")
+            if manifest_path.exists():
+                manifest_data = manifest_path.read_text(encoding="utf-8")
+                
+                # Overwrite base package declaration
+                manifest_data = re.sub(r'package="[^"]+"', 'package="com.twitter.piko"', manifest_data)
+                
+                # Append suffix to all content providers to resolve installation conflicts
+                manifest_data = re.sub(r'android:authorities="([^"]+)"', r'android:authorities="\1.piko"', manifest_data)
+                
+                manifest_path.write_text(manifest_data, encoding="utf-8")
+                
+            apktool_yml = Path("decoded_apk/apktool.yml")
+            if apktool_yml.exists():
+                yml_data = apktool_yml.read_text(encoding="utf-8")
+                if "renameManifestPackage:" in yml_data:
+                    yml_data = re.sub(r"renameManifestPackage:.*", "renameManifestPackage: com.twitter.piko", yml_data)
+                else:
+                    yml_data += "\nrenameManifestPackage: com.twitter.piko"
+                apktool_yml.write_text(yml_data, encoding="utf-8")
+                
+            utils.run_process(["java", "-jar", str(apktool_jar), "b", "decoded_apk", "-o", str(cloned_apk)], capture=True)
+            
+            if cloned_apk.exists():
+                output_apk.unlink(missing_ok=True)
+                output_apk = cloned_apk
+                
+        except Exception as e:
+            logging.error(f"Cloning failed: {e}")
+        finally:
+            subprocess.run(["rm", "-rf", "decoded_apk"], check=False)
 
         # Extracts the patch version dynamically from the downloaded file
         patchver = release.extract_version(str(patches))
