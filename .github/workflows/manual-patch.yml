@@ -72,7 +72,6 @@ jobs:
       
       - name: Install Dependencies
         run: |
-          wget https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar -O apktool.jar
           pip install -r requirements.txt
           pip install requests beautifulsoup4 gdown
 
