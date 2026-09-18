@@ -234,6 +234,11 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
         output_apk = Path(f"{app_name}-{arch}-patch-v{version}.apk")
 
         try:
+            custom_pkg_flags = [
+                "-e", "Change package name",
+                "-O", "packageName=com.twitter.piko"
+            ]
+
             # USE DIFFERENT COMMANDS BASED ON SOURCE TYPE
             if is_morphe:
                 logging.info("🔧 Using Morphe patching system...")
@@ -242,7 +247,7 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                         "java", "-jar", str(cli),
                         "patch", "--patches", str(patches),
                         "--out", str(output_apk), str(input_apk),
-                        *exclude_patches, *include_patches
+                        *exclude_patches, *include_patches, *custom_pkg_flags
                     ]
                     utils.run_process(morphe_cmd, capture=True, stream=True)
                 except subprocess.CalledProcessError as e:
@@ -252,7 +257,8 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                         "java", "-jar", str(cli),
                         "patch", "--patches", str(patches),
                         "--input", str(input_apk),
-                        "--output", str(output_apk)
+                        "--output", str(output_apk),
+                        *exclude_patches, *include_patches, *custom_pkg_flags
                     ]
                     utils.run_process(morphe_cmd, capture=True, stream=True)
             else:
@@ -261,11 +267,6 @@ def run_build(app_name: str, source: str, arch: str = "universal") -> str:
                 is_revanced_v6_or_newer = (
                     'revanced-cli-6' in cli_name or 'revanced-cli-7' in cli_name or 'revanced-cli-8' in cli_name
                 )
-
-                custom_pkg_flags = [
-                    "-e", "Change package name",
-                    "-O", "packageName=com.twitter.piko"
-                ]
 
                 if is_revanced_v6_or_newer:
                     utils.run_process([
